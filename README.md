@@ -1,4 +1,4 @@
-# BedJetWebSchedule
+# BedJetWebSchedule by Dan Roberts DanRoberts@DigitalRCS.Com
 
 ESP32 firmware that controls a **BedJet** over **Bluetooth Low Energy (BLE)** and provides a **mobile-friendly Web UI** plus an **on-device scheduler** to automate BedJet modes (heat/cool/turbo/dry/ext-heat/off) with optional fan, temperature, and runtime settings.
 
