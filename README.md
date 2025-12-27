@@ -159,7 +159,10 @@ Suggested commit style:
 - `docs: ...`
 
 ---
-
+## Images
+![Esp32 and Case](/Esp32AndCase.jpg)
+![Phone Web Page](/PhoneWebPage.jpg)
+![Desktop Web Page](/DesktopWebPage.jpg)
 ## License
 
 GPL-3.0 (or update this section to match your repository license choice).
