@@ -1,0 +1,942 @@
+#include "WebUiHtml.h"
+
+const char INDEX_HTML[] PROGMEM = R"BEDJET_HTML(
+<!doctype html><html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BedJet Schedule</title>
+<style>
+  :root{
+    --bg1:#071a33; --bg2:#053a5a; --card:rgba(255,255,255,.08);
+    --border:rgba(255,255,255,.14); --text:#e9f3ff; --muted:rgba(233,243,255,.72);
+    --red:#ff3b4d; --green:#31d27c;
+    --inputBg: rgba(0,0,0,.28);
+    --inputBorder: rgba(255,255,255,.18);
+    --shadow: 0 10px 26px rgba(0,0,0,.25);
+  }
+
+  html { color-scheme: dark; }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    color:var(--text);
+    background:linear-gradient(180deg,var(--bg1),var(--bg2));
+    min-height:100vh;
+    -webkit-text-size-adjust:100%;
+  }
+
+  .wrap{ max-width:980px; margin:0 auto; padding:16px; padding-bottom:28px; }
+  .top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+  .title{ font-weight:900; letter-spacing:.4px; font-size:22px; }
+  .sub{ color:var(--muted); font-size:13px; margin-top:3px; line-height:1.35; }
+
+  .btn{
+    padding:10px 14px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,.10);
+    color:var(--text);
+    font-weight:800;
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+  .btn.primary{ background:rgba(56,182,255,.16); }
+
+
+  .btn.pushed{
+    transform: translateY(2px);
+    filter: brightness(0.96);
+  }
+  .btn:disabled{
+    opacity:0.55;
+    cursor:not-allowed;
+  }
+
+  .row{ display:flex; gap:12px; flex-wrap:wrap; }
+  .card{
+    flex:1;
+    min-width:300px;
+    border:1px solid var(--border);
+    background:var(--card);
+    border-radius:16px;
+    padding:12px;
+    box-shadow:var(--shadow);
+  }
+
+  .kv{ display:grid; grid-template-columns:170px 1fr; gap:6px 10px; font-size:14px; }
+  .k{ color:var(--muted); }
+  .pill{
+    display:inline-block; padding:3px 10px; border-radius:999px;
+    border:1px solid var(--border); font-size:12px; font-weight:900;
+  }
+  .pill.ok{ color:var(--green); }
+  .pill.bad{ color:var(--red); }
+
+  .inline{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+  /* Inputs / Selects (fix dropdown background/text) */
+  input, select{
+    width:100%;
+    padding:10px;
+    border-radius:12px;
+    border:1px solid var(--inputBorder);
+    background:var(--inputBg);
+    color:var(--text);
+    font-size:16px; /* prevents iOS zoom */
+    line-height:1.2;
+    outline:none;
+  }
+  input::placeholder{ color: rgba(233,243,255,.55); }
+
+  select{
+    -webkit-appearance:none; -moz-appearance:none; appearance:none;
+    padding-right:36px;
+    background-image:
+      linear-gradient(45deg, transparent 50%, rgba(233,243,255,.85) 50%),
+      linear-gradient(135deg, rgba(233,243,255,.85) 50%, transparent 50%),
+      linear-gradient(to right, transparent, transparent);
+    background-position:
+      calc(100% - 20px) calc(50% - 3px),
+      calc(100% - 14px) calc(50% - 3px),
+      0 0;
+    background-size:6px 6px, 6px 6px, 100% 100%;
+    background-repeat:no-repeat;
+  }
+  select option{ background:#0b2443; color:var(--text); }
+
+  input:focus, select:focus{
+    border-color: rgba(56,182,255,.45);
+    box-shadow: 0 0 0 3px rgba(56,182,255,.10);
+  }
+
+  .iconbtn{
+    width:38px; height:38px; border-radius:12px;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,.08);
+    color:var(--text);
+    cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center;
+    touch-action: manipulation;
+    font-weight:900;
+  }
+  .iconbtn.danger{ background:rgba(255,59,77,.14); border-color:rgba(255,59,77,.32); }
+  .iconrow{ display:flex; gap:10px; justify-content:flex-end; }
+
+  dialog{
+    width:min(560px,92vw);
+    border-radius:16px;
+    border:1px solid var(--border);
+    background:linear-gradient(180deg, rgba(7,26,51,.96), rgba(5,58,90,.96));
+    color:var(--text);
+    padding:14px;
+  }
+  label{ display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+
+  .formrow{ display:flex; gap:10px; flex-wrap:wrap; margin:10px 0; }
+  
+  /* Two-column form rows: keep side-by-side on desktop, stack on mobile */
+  .formrow.twocol{ flex-wrap:nowrap; }
+  .formrow.twocol .half{ min-width:0; }
+.half{ flex:1; min-width:240px; }
+  .spin{ width:84px; }
+  select.qcSelect{ width:5.4em; min-width:0; }
+  .mini{ font-size:12px; color:var(--muted); margin-top:6px; }
+  .timegrid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+
+  /* Desktop schedule table */
+  .tablewrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:12px; }
+  table{ width:100%; border-collapse:collapse; margin-top:8px; font-size:14px; min-width:760px; }
+  th,td{ padding:10px 8px; border-bottom:1px solid rgba(255,255,255,.10); text-align:left; white-space:nowrap; }
+  th{ color:var(--muted); font-weight:900; }
+
+  /* Phone "app-like" schedule cards */
+  .cards{ display:none; margin-top:10px; }
+  .scard{
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.06);
+    border-radius:16px;
+    padding:12px;
+    box-shadow: 0 8px 22px rgba(0,0,0,.22);
+    margin-bottom:10px;
+  }
+  .scardTop{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .scardTitle{ font-weight:950; letter-spacing:.2px; }
+  .badge{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:6px 10px; border-radius:999px;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(0,0,0,.18);
+    font-size:12px; font-weight:900;
+    color:var(--muted);
+  }
+  .badge.on{ color: var(--green); }
+  .scardGrid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:8px 12px;
+    margin-top:10px;
+    font-size:14px;
+  }
+  .scK{ color:var(--muted); font-size:12px; margin-bottom:2px; }
+  .scV{ font-weight:850; }
+  .scActions{ display:flex; gap:10px; justify-content:flex-end; margin-top:10px; }
+
+  /* Mobile tweaks */
+  @media (max-width: 720px){
+    .formrow.twocol{ flex-wrap:wrap; }
+    .wrap{ padding:12px; padding-bottom:22px; }
+    .title{ font-size:20px; }
+    .sub{ font-size:12.5px; }
+    .kv{ grid-template-columns:130px 1fr; font-size:13px; }
+    .card{ min-width:100%; border-radius:18px; }
+    .btn{ padding:10px 12px; border-radius:14px; }
+    dialog{ width:min(560px,96vw); }
+
+    /* Switch schedule view: cards instead of table */
+    .tablewrap{ display:none; }
+    .cards{ display:block; }
+    table{ display:none; }
+
+    /* Make top buttons easier */
+    .iconbtn{ width:42px; height:42px; border-radius:14px; }
+    select.qcSelect{ width:5.0em; }
+  }
+
+  /* Smaller phones */
+  @media (max-width: 390px){
+    .scardGrid{ grid-template-columns: 1fr; }
+    .spin{ width:74px; }
+    select.qcSelect{ width:4.6em; }
+  }
+
+  /* Connect modal */
+  #connDlg{ width:min(420px,92vw); }
+  .spinner{
+    width:20px; height:20px; border-radius:50%;
+    border:3px solid rgba(233,243,255,.22);
+    border-top-color: rgba(233,243,255,.95);
+    animation: spin .9s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg);} }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div class="title">BEDJET — Schedule</div>
+      <div class="sub">Connected Device: <span id="dev">-</span> • <span id="mac">-</span></div>
+      <div class="sub">
+        Time: <span id="timeNow">-</span>
+        • NTP: <span id="ntp">-</span>
+        • BLE: <span id="ble">-</span>
+        • TZ Offset: <span id="tz">-</span>
+      </div>
+    </div>
+    <div class="inline">
+      <button class="btn primary" onclick="bleConnect(this)">Connect</button>
+      <button class="btn" onclick="bleDisconnect(this)">Disconnect</button>
+      <button class="btn" onclick="doRefresh(this)">Refresh</button>
+          <a class="btn" href="/config">Config</a>
+</div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <div class="kv">
+        <div class="k">ESP32 IP</div><div id="ip">-</div>
+        <div class="k">Schedule State</div><div id="schedState">-</div>
+        <div class="k">BedJet Status</div><div id="status">-</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:950; margin-bottom:10px;">Quick Controls</div>
+      <div class="inline">
+        <button class="btn" onclick="btn('OFF', this)">OFF</button>
+        <button class="btn" onclick="btn('TURBO', this)">TURBO</button>
+        <button class="btn" onclick="btn('HEAT', this)">HEAT</button>
+        <button class="btn" onclick="btn('COOL', this)">COOL</button>
+        <button class="btn" onclick="btn('DRY', this)">DRY</button>
+        <button class="btn" onclick="btn('EXT-HEAT', this)">EXT-HEAT</button>
+      </div>
+
+      <div class="formrow twocol" style="margin-top:10px;">
+        <div class="half">
+          <label>Quick Fan Step (0–19)</label>
+          <div class="inline">
+            <button class="btn" onclick="spin('qFan',-1)">-</button>
+            <input id="qFan" class="spin" value="10" inputmode="numeric"/>
+            <button class="btn" onclick="spin('qFan',+1)">+</button>
+          </div>
+          <div class="mini">0=5% … 19=100%</div>
+        </div>
+
+        <div class="half">
+          <label>Quick Temp (°F)</label>
+          <div class="inline">
+            <button class="btn" onclick="spin('qTemp',-1)">-</button>
+            <input id="qTemp" class="spin" value="90" inputmode="numeric"/>
+            <button class="btn" onclick="spin('qTemp',+1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="formrow" style="margin-top:10px;">
+        <div style="flex:1;">
+          <label>Quick Run Time</label>
+          <div class="inline">
+            <select id="qRunH" class="qcSelect"></select>
+            <div class="mini" style="margin:0 6px;">hr</div>
+            <select id="qRunM" class="qcSelect"></select>
+            <div class="mini" style="margin-left:6px;">min</div>
+          </div>
+          <div class="mini">Leave at 0 hr / 0 min to not change runtime.</div>
+        </div>
+      </div>
+
+      <div class="mini">Scheduler applies blocks automatically.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px;">
+    <div class="inline" style="justify-content:space-between;">
+      <div style="font-weight:950;">Schedule</div>
+      <div class="inline">
+        <button class="btn" onclick="exportSchedule(this)">EXPORT</button>
+        <button class="btn" onclick="openImport(this)">IMPORT</button>
+        <button class="btn primary" onclick="openAdd()">ADD</button>
+      </div>
+    </div>
+
+    <!-- Desktop grid -->
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:60px;">#</th>
+            <th>Mode</th>
+            <th>Temp</th>
+            <th>Fan</th>
+            <th>Start</th>
+            <th>Stop</th>
+            <th>Enabled</th>
+            <th style="width:110px; text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <!-- Mobile app-like cards -->
+    <div id="cards" class="cards"></div>
+  </div>
+</div>
+
+
+<dialog id="connDlg">
+  <div style="font-weight:950;">BLE Connection</div>
+  <div class="inline" style="margin-top:10px; gap:12px;">
+    <div id="connSpin" class="spinner" aria-hidden="true"></div>
+    <div id="connMsg" style="font-weight:850; white-space:pre-line;">Connecting...</div>
+  </div>
+</dialog>
+
+<dialog id="impDlg">
+  <div class="inline" style="justify-content:space-between;">
+    <div style="font-weight:950;">Schedule Import / Export</div>
+    <button class="btn" onclick="closeImp()">Close</button>
+  </div>
+
+  <div class="mini" style="margin-top:8px;">
+    Export downloads a JSON file. Import expects the same JSON format and will <b>REPLACE</b> the current schedule.
+  </div>
+
+  <div class="formrow" style="margin-top:10px;">
+    <div style="flex:1;">
+      <label>Select JSON file (optional)</label>
+      <input id="impFile" type="file" accept=".json,application/json" />
+    </div>
+  </div>
+
+  <div class="formrow">
+    <div style="flex:1;">
+      <label>Paste JSON</label>
+      <textarea id="impText" style="width:100%; min-height:220px; padding:10px; border-radius:12px; border:1px solid var(--border); background:rgba(0,0,0,.25); color:var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px;"></textarea>
+      <div id="impMsg" class="mini"></div>
+    </div>
+  </div>
+
+  <div class="inline" style="justify-content:flex-end; margin-top:12px;">
+    <button class="btn primary" onclick="importReplace(this)">Import (Replace)</button>
+    <button class="btn" onclick="closeImp()">Cancel</button>
+  </div>
+</dialog>
+
+<dialog id="dlg">
+  <input type="hidden" id="editId" value="">
+  <div class="inline" style="justify-content:space-between;">
+    <div style="font-weight:950;" id="dlgTitle">ADD Schedule Item</div>
+    <button class="btn" onclick="closeDlg()">Close</button>
+  </div>
+
+  <div class="formrow">
+    <div class="half">
+      <label>Mode</label>
+      <select id="modeSel">
+        <option>OFF</option>
+        <option selected>TURBO</option>
+        <option>HEAT</option>
+        <option>COOL</option>
+        <option>DRY</option>
+        <option>EXT-HEAT</option>
+      </select>
+    </div>
+    <div class="half">
+      <label>Enabled</label>
+      <select id="enabledSel">
+        <option value="1" selected>Yes</option>
+        <option value="0">No</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="formrow twocol">
+    <div class="half">
+      <label>Fan Step (0–19)</label>
+      <div class="inline">
+        <button class="btn" onclick="spin('fanInp',-1)">-</button>
+        <input id="fanInp" class="spin" value="10" inputmode="numeric"/>
+        <button class="btn" onclick="spin('fanInp',+1)">+</button>
+      </div>
+      <div class="mini">0=5% … 19=100%</div>
+    </div>
+
+    <div class="half">
+      <label>Temp (°F)</label>
+      <div class="inline">
+        <button class="btn" onclick="spin('tempInp',-1)">-</button>
+        <input id="tempInp" class="spin" value="90" inputmode="numeric"/>
+        <button class="btn" onclick="spin('tempInp',+1)">+</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="formrow">
+    <div class="half">
+      <label>Start Time</label>
+      <div class="timegrid">
+        <select id="startHour"></select>
+        <select id="startMin"></select>
+        <select id="startAmpm"><option>AM</option><option>PM</option></select>
+      </div>
+    </div>
+    <div class="half">
+      <label>Stop Time</label>
+      <div class="timegrid">
+        <select id="stopHour"></select>
+        <select id="stopMin"></select>
+        <select id="stopAmpm"><option>AM</option><option>PM</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="inline" style="justify-content:flex-end; margin-top:12px;">
+    <button class="btn primary" onclick="saveSchedule()">Save</button>
+    <button class="btn" onclick="closeDlg()">Cancel</button>
+  </div>
+</dialog>
+
+<script>
+let state=null;
+
+function pill(ok, txt){ return `<span class="pill ${ok?'ok':'bad'}">${txt}</span>`; }
+
+function spin(id,d){
+  const el=document.getElementById(id);
+  let v=parseInt(el.value||"0",10); if(isNaN(v)) v=0;
+  v+=d;
+  if(id==="fanInp" || id==="qFan") v=Math.max(0,Math.min(19,v));
+  if(id==="tempInp" || id==="qTemp") v=Math.max(40,Math.min(120,v));
+  if(id==="qRunH") v=Math.max(0,Math.min(11,v));
+  if(id==="qRunM") v=Math.max(0,Math.min(59,v));
+  el.value=v.toString();
+}
+function fillTimeSelects(){
+  const hourOpts = [];
+  for(let h=1;h<=12;h++) hourOpts.push(`<option value="${h}">${h}</option>`);
+  ["startHour","stopHour"].forEach(id=>document.getElementById(id).innerHTML = hourOpts.join(""));
+
+  // minutes in 5-minute steps (lean). Change step=1 if you want.
+  const minOpts = [];
+  for(let m=0;m<60;m+=5){
+    const mm = (m<10) ? ("0"+m) : (""+m);
+    minOpts.push(`<option value="${m}">${mm}</option>`);
+  }
+  ["startMin","stopMin"].forEach(id=>document.getElementById(id).innerHTML = minOpts.join(""));
+
+  // defaults
+  document.getElementById("startHour").value = "10";
+  document.getElementById("startMin").value = "0";
+  document.getElementById("startAmpm").value = "PM";
+
+  document.getElementById("stopHour").value = "6";
+  document.getElementById("stopMin").value = "30";
+  document.getElementById("stopAmpm").value = "AM";
+}
+
+function toMinutesSinceMidnight(h12, m, ampm){
+  let h = parseInt(h12,10);
+  let mm = parseInt(m,10);
+  if(isNaN(h) || isNaN(mm)) return null;
+  ampm = (ampm||"").toUpperCase();
+  if(ampm==="AM"){
+    if(h===12) h=0;
+  } else {
+    if(h!==12) h+=12;
+  }
+  return h*60 + mm;
+}
+
+function minutesToSelectors(mins, prefix){
+  let h24 = Math.floor(mins/60);
+  let m = mins % 60;
+  let ampm = (h24>=12) ? "PM" : "AM";
+  let h12 = h24 % 12; if(h12===0) h12=12;
+
+  document.getElementById(prefix+"Hour").value = String(h12);
+
+  // minute dropdown uses 5-min steps; snap to nearest
+  const step = 5;
+  const snapped = Math.round(m/step)*step;
+  const mm = (snapped>=60) ? 55 : snapped;
+  document.getElementById(prefix+"Min").value = String(mm);
+
+  document.getElementById(prefix+"Ampm").value = ampm;
+}
+
+function renderScheduleTable(){
+  const rowsEl=document.getElementById("rows");
+  rowsEl.innerHTML = (state.schedule||[]).map((s,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td>${s.mode}</td>
+      <td>${s.tempF}°F</td>
+      <td>${s.fan}</td>
+      <td>${s.start}</td>
+      <td>${s.stop}</td>
+      <td>${s.enabled ? "Yes":"No"}</td>
+      <td style="text-align:right;">
+        <div class="iconrow">
+          <button class="iconbtn" title="Edit" onclick="openEdit(${s.id})">✎</button>
+          <button class="iconbtn danger" title="Delete" onclick="deleteOne(${s.id})">🗑</button>
+        </div>
+      </td>
+    </tr>`).join("");
+}
+
+function renderScheduleCards(){
+  const cards=document.getElementById("cards");
+  const sched = state.schedule || [];
+  if(!sched.length){
+    cards.innerHTML = `<div class="scard"><div class="scardTitle">No schedule items</div>
+                       <div class="sub" style="margin-top:6px;">Tap ADD to create one.</div></div>`;
+    return;
+  }
+  cards.innerHTML = sched.map((s,i)=>`
+    <div class="scard">
+      <div class="scardTop">
+        <div class="scardTitle">Schedule #${i+1} <span style="color:var(--muted); font-weight:800;">(ID ${s.id})</span></div>
+        <div class="badge ${s.enabled?'on':''}">${s.enabled?'Enabled':'Disabled'}</div>
+      </div>
+
+      <div class="scardGrid">
+        <div>
+          <div class="scK">Mode</div>
+          <div class="scV">${s.mode}</div>
+        </div>
+        <div>
+          <div class="scK">Temp / Fan</div>
+          <div class="scV">${s.tempF}°F • ${s.fan}</div>
+        </div>
+        <div>
+          <div class="scK">Start</div>
+          <div class="scV">${s.start}</div>
+        </div>
+        <div>
+          <div class="scK">Stop</div>
+          <div class="scV">${s.stop}</div>
+        </div>
+      </div>
+
+      <div class="scActions">
+        <button class="btn" onclick="openEdit(${s.id})">Edit</button>
+        <button class="btn" style="border-color:rgba(255,59,77,.32); background:rgba(255,59,77,.14);" onclick="deleteOne(${s.id})">Delete</button>
+      </div>
+    </div>`).join("");
+}
+
+function render(){
+  if(!state) return;
+
+  document.getElementById("dev").textContent = state.device_name || "-";
+  document.getElementById("mac").textContent = state.device_mac || "-";
+  document.getElementById("ip").textContent  = state.ip || "-";
+  document.getElementById("timeNow").textContent = state.time || "-";
+
+  document.getElementById("ntp").innerHTML = state.time_valid ? pill(true,"Synced") : pill(false,"Not Synced");
+  document.getElementById("ble").innerHTML = state.ble_connected ? pill(true,"Connected") : pill(false,"Disconnected");
+
+  const tz = (state.tz_offset_sec!=null) ? String(state.tz_offset_sec) : "-";
+  document.getElementById("tz").textContent = tz;
+
+  const act = state.active_schedule_id || 0;
+  document.getElementById("schedState").textContent = act ? ("Running schedule ID: "+act) : "Not in a scheduled block";
+  document.getElementById("status").textContent = state.status_summary || "-";
+
+  renderScheduleTable();
+  renderScheduleCards();
+}
+
+let refreshInFlight=false;
+async function refresh(){
+  if(document.hidden) return;
+  if(refreshInFlight) return;
+  refreshInFlight=true;
+  try{
+    const r=await fetch("/api/state",{cache:"no-store"});
+    state=await r.json();
+    render();
+  } finally {
+    refreshInFlight=false;
+  }
+}
+
+
+function setConnModal(msg, spinner=true, isError=false){
+  const d=document.getElementById("connDlg");
+  const m=document.getElementById("connMsg");
+  const sp=document.getElementById("connSpin");
+  if(m) m.textContent = msg || "";
+  if(sp) sp.style.display = spinner ? "inline-block" : "none";
+  if(m){
+    m.style.color = isError ? "var(--red)" : "var(--text)";
+  }
+  if(d && !d.open) d.showModal();
+}
+function closeConnModal(delayMs){
+  const d=document.getElementById("connDlg");
+  if(!d) return;
+  setTimeout(()=>{ try{ if(d.open) d.close(); } catch(e){} }, delayMs||0);
+}
+
+async function doRefresh(el){
+  pushBtn(el);
+  if(el) el.disabled = true;
+  try{ await refresh(); }
+  finally { if(el) el.disabled = false; }
+}
+
+async function bleConnect(el){
+  pushBtn(el);
+  if(el) el.disabled = true;
+  setConnModal("Connecting...", true, false);
+
+  try{
+    const r = await fetch("/api/ble/connect",{method:"POST"});
+    let ok = r.ok;
+    try{
+      const j = await r.json();
+      if(typeof j.ok === "boolean") ok = j.ok;
+    } catch(e){ /* ignore */ }
+
+    if(ok){
+      setConnModal("Connected", false, false);
+      await refresh();
+      closeConnModal(450);
+    } else {
+      setConnModal("Connect failed", false, true);
+      await refresh();
+      closeConnModal(1200);
+    }
+  } catch(e){
+    setConnModal("Connect failed", false, true);
+    try{ await refresh(); } catch(_){}
+    closeConnModal(1200);
+  } finally {
+    if(el) el.disabled = false;
+  }
+}
+
+async function bleDisconnect(el){
+  pushBtn(el);
+  if(el) el.disabled = true;
+  try{
+    await fetch("/api/ble/disconnect",{method:"POST"});
+  } finally {
+    if(el) el.disabled = false;
+    await refresh();
+}
+}
+
+function openImport(el){
+  pushBtn(el);
+  const d=document.getElementById("impDlg");
+  const t=document.getElementById("impText");
+  const f=document.getElementById("impFile");
+  const m=document.getElementById("impMsg");
+  if(t) t.value="";
+  if(f) f.value="";
+  if(m) m.textContent="";
+  if(d && !d.open) d.showModal();
+
+  if(f){
+    f.onchange = async ()=>{
+      if(!f.files || !f.files.length) return;
+      const file=f.files[0];
+      const r = new FileReader();
+      r.onload = ()=>{ if(t) t.value = String(r.result||""); };
+      r.readAsText(file);
+    };
+  }
+}
+
+function closeImp(){
+  const d=document.getElementById("impDlg");
+  if(!d) return;
+  try{ if(d.open) d.close(); }catch(e){}
+}
+
+function setImpMsg(msg, isError){
+  const m=document.getElementById("impMsg");
+  if(!m) return;
+  m.textContent = msg || "";
+  m.style.color = isError ? "var(--red)" : "var(--muted)";
+}
+
+async function exportSchedule(el){
+  pushBtn(el);
+  if(el) el.disabled=true;
+  try{
+    const r = await fetch("/api/schedule/export");
+    if(!r.ok){
+      setImpMsg("Export failed: "+await r.text(), true);
+      return;
+    }
+    const txt = await r.text();
+    const blob = new Blob([txt], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const ts = new Date().toISOString().replace(/[:.]/g,"-");
+    a.href = url;
+    a.download = "bedjet-schedule-"+ts+".json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  } finally {
+    if(el) el.disabled=false;
+  }
+}
+
+async function importReplace(el){
+  pushBtn(el);
+  if(el) el.disabled=true;
+  try{
+    const t=document.getElementById("impText");
+    const body = t ? String(t.value||"").trim() : "";
+    if(!body.length){ setImpMsg("Paste JSON or choose a file first.", true); return; }
+
+    setImpMsg("Importing...", false);
+    const r = await fetch("/api/schedule/import", {method:"POST", body});
+    if(!r.ok){
+      setImpMsg("Import failed: "+await r.text(), true);
+      return;
+    }
+    let j=null;
+    try{ j = await r.json(); }catch(e){}
+    const n = j && typeof j.count === "number" ? j.count : null;
+    setImpMsg("Imported "+(n!==null? n : "schedule")+" item(s).", false);
+    await refresh();
+    setTimeout(()=>closeImp(), 650);
+  } catch(e){
+    setImpMsg("Import failed.", true);
+  } finally {
+    if(el) el.disabled=false;
+  }
+}
+
+
+function pushBtn(el){
+  if(!el) return;
+  el.classList.add("pushed");
+  setTimeout(()=>{ el.classList.remove("pushed"); }, 220);
+}
+async function btn(name, el){
+  pushBtn(el);
+  if(el) el.disabled = true;
+
+  const fanEl = document.getElementById("qFan");
+  const tempEl = document.getElementById("qTemp");
+  const runHEl = document.getElementById("qRunH");
+  const runMEl = document.getElementById("qRunM");
+  const fan = fanEl ? String(fanEl.value || "").trim() : "";
+  const temp = tempEl ? String(tempEl.value || "").trim() : "";
+  const runH = runHEl ? String(runHEl.value || "").trim() : "";
+  const runM = runMEl ? String(runMEl.value || "").trim() : "";
+
+  const qs = new URLSearchParams();
+  qs.set("name", name);
+  if(fan.length) qs.set("fan", fan);
+  if(temp.length) qs.set("temp", temp);
+  if(runH.length && runM.length && (runH !== "0" || runM !== "0")) { qs.set("runH", runH); qs.set("runM", runM); }
+
+  // Build a multi-line modal message describing the action.
+  const lines = [];
+  lines.push("Connecting / ensuring link...");
+  lines.push("Button: " + name);
+  if(temp.length) lines.push("Temp: " + temp + "°F");
+  if(fan.length)  lines.push("Fan: " + fan + " (0–19)");
+  if(runH.length && runM.length && (runH !== "0" || runM !== "0")) lines.push("Timer: " + runH + " hr " + runM + " min");
+
+  setConnModal(lines.join("\n"), true, false);
+
+  try{
+    // Small delay so the modal reliably renders before BLE work starts.
+    await new Promise(r => setTimeout(r, 80));
+
+    const r = await fetch("/api/cmd/button?" + qs.toString(), {method:"POST"});
+    let ok = r.ok;
+    try{
+      const j = await r.json();
+      if(typeof j.ok === "boolean") ok = j.ok;
+    } catch(e){ /* ignore */ }
+
+    if(ok){
+      setConnModal(name + " applied", false, false);
+      await refresh();
+      closeConnModal(450);
+    } else {
+      setConnModal(name + " failed", false, true);
+      await refresh();
+      closeConnModal(1200);
+    }
+  } catch(e){
+    setConnModal(name + " failed", false, true);
+    try{ await refresh(); } catch(_){}
+    closeConnModal(1200);
+  } finally {
+    if(el) el.disabled = false;
+  }
+}
+
+function openAdd(){
+  fillTimeSelects();
+  document.getElementById("editId").value = "";
+  document.getElementById("dlgTitle").textContent = "ADD Schedule Item";
+  document.getElementById("modeSel").value = "TURBO";
+  document.getElementById("fanInp").value = "10";
+  document.getElementById("tempInp").value = "90";
+  document.getElementById("enabledSel").value = "1";
+  document.getElementById("dlg").showModal();
+}
+
+function openEdit(id){
+  const item = (state.schedule||[]).find(x => Number(x.id) === Number(id));
+  if(!item){ alert("Item not found"); return; }
+
+  fillTimeSelects();
+
+  document.getElementById("editId").value = String(id);
+  document.getElementById("dlgTitle").textContent = "EDIT Schedule Item";
+  document.getElementById("modeSel").value = item.mode;
+  document.getElementById("fanInp").value  = String(item.fan);
+  document.getElementById("tempInp").value = String(item.tempF);
+  document.getElementById("enabledSel").value = item.enabled ? "1" : "0";
+
+  if(item.startMin!=null && item.stopMin!=null){
+    minutesToSelectors(Number(item.startMin), "start");
+    minutesToSelectors(Number(item.stopMin), "stop");
+  }
+
+  document.getElementById("dlg").showModal();
+}
+
+function closeDlg(){ document.getElementById("dlg").close(); }
+
+async function saveSchedule(){
+  const mode = document.getElementById("modeSel").value;
+  const fan  = document.getElementById("fanInp").value;
+  const temp = document.getElementById("tempInp").value;
+  const enabled = document.getElementById("enabledSel").value;
+
+  const sMin = toMinutesSinceMidnight(
+    document.getElementById("startHour").value,
+    document.getElementById("startMin").value,
+    document.getElementById("startAmpm").value
+  );
+  const eMin = toMinutesSinceMidnight(
+    document.getElementById("stopHour").value,
+    document.getElementById("stopMin").value,
+    document.getElementById("stopAmpm").value
+  );
+
+  if(sMin===null || eMin===null){ alert("Invalid time selection"); return; }
+  if(sMin===eMin){ alert("Start and Stop cannot be the same"); return; }
+
+  const editId = document.getElementById("editId").value.trim();
+
+  let url = "/api/schedule/add";
+  const bodyObj = { mode, fan, temp, enabled, startMin:String(sMin), stopMin:String(eMin) };
+
+  if(editId.length){
+    url = "/api/schedule/update";
+    bodyObj.id = editId;
+  }
+
+  const body = new URLSearchParams(bodyObj);
+  const r = await fetch(url,{method:"POST",body});
+  if(!r.ok){ alert((editId.length?"Update":"Add")+" failed: "+await r.text()); return; }
+
+  closeDlg();
+  await refresh();
+}
+
+async function deleteOne(id){
+  if(!confirm("Delete schedule item "+id+"?")) return;
+  const body = new URLSearchParams({id:String(id)});
+  const r = await fetch("/api/schedule/deleteOne",{method:"POST",body});
+  if(!r.ok){ alert("Delete failed: "+await r.text()); return; }
+  await refresh();
+}
+
+
+function initQuickRunSelects(){
+  const hOpts=[];
+  for(let h=0; h<=11; h++){ hOpts.push(`<option value="${h}">${h}</option>`); }
+  const mOpts=[];
+  for(let m=0; m<60; m++){
+    const mm = (m<10) ? ("0"+m) : (""+m);
+    mOpts.push(`<option value="${m}">${mm}</option>`);
+  }
+  const hEl = document.getElementById("qRunH");
+  const mEl = document.getElementById("qRunM");
+  if(hEl) hEl.innerHTML = hOpts.join("");
+  if(mEl) mEl.innerHTML = mOpts.join("");
+  if(hEl) hEl.value = "0";
+  if(mEl) mEl.value = "0";
+}
+
+initQuickRunSelects();
+
+setInterval(refresh, 2000);
+refresh();
+</script>
+</body></html>
+
+)BEDJET_HTML";
+
+const size_t INDEX_HTML_LEN = sizeof(INDEX_HTML) - 1;
