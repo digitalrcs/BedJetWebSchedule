@@ -41,7 +41,7 @@ static String configPageHtml(bool apMode, const String& banner) {
   h.reserve(4200);
   h += "<!doctype html><html><head><meta charset='utf-8'/>";
   h += "<meta name='viewport' content='width=device-width,initial-scale=1'/>";
-  h += "<title>BedJet ESP32 Setup</title>";
+  h += "<title>BedJet Schedule ESP32 Setup</title>";
   h += "<style>";
   h += R"CSS(
   :root{
@@ -57,7 +57,7 @@ static String configPageHtml(bool apMode, const String& banner) {
                 radial-gradient(900px 500px at 80% 20%, rgba(0,255,170,.10), transparent 60%),
                 linear-gradient(160deg, var(--bg1), var(--bg2));
   }
-  .wrap{ max-width:860px; margin:0 auto; padding:18px 16px 26px; }
+  .wrap{ max-width:600px; margin:0 auto; padding:18px 16px 26px; }
   .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
   .title{ font-size:20px; font-weight:900; letter-spacing:.2px; }
   .sub{ font-size:13px; color:var(--muted); margin-top:2px; }
@@ -189,6 +189,36 @@ static String configPageHtml(bool apMode, const String& banner) {
   h += "<label>Hostname (mDNS)</label>";
   h += "<input class='field short' name='host' type='text' value='" + htmlEscape(g_cfg.hostName) + "' placeholder='BEDJETWEB' />";
   h += "<div class='hint'>After reboot you can usually open: <b>http://"+ htmlEscape(g_cfg.hostName) +".local/</b> (PC/iOS often work; Android varies). IP always works.</div>";
+  // Time zone
+  String tzNow = g_cfg.tz; tzNow.trim();
+  if (tzNow.length() == 0) tzNow = DEFAULT_TZ;
+  bool tzIsKnown = false;
+  if (tzNow == "EST5EDT,M3.2.0/2,M11.1.0/2") tzIsKnown = true;
+  if (tzNow == "CST6CDT,M3.2.0/2,M11.1.0/2") tzIsKnown = true;
+  if (tzNow == "MST7MDT,M3.2.0/2,M11.1.0/2") tzIsKnown = true;
+  if (tzNow == "PST8PDT,M3.2.0/2,M11.1.0/2") tzIsKnown = true;
+  if (tzNow == "AKST9AKDT,M3.2.0/2,M11.1.0/2") tzIsKnown = true;
+  if (tzNow == "HST10") tzIsKnown = true;
+  if (tzNow == "MST7") tzIsKnown = true;
+  if (tzNow == "UTC0") tzIsKnown = true;
+
+  h += "<label>Time Zone</label>";
+  h += "<select class='field long' name='tzsel' id='tzsel'>";
+  h += String("<option value='EST5EDT,M3.2.0/2,M11.1.0/2'") + ((tzNow == "EST5EDT,M3.2.0/2,M11.1.0/2") ? " selected" : "") + ">US — Eastern (ET)</option>";
+  h += String("<option value='CST6CDT,M3.2.0/2,M11.1.0/2'") + ((tzNow == "CST6CDT,M3.2.0/2,M11.1.0/2") ? " selected" : "") + ">US — Central (CT)</option>";
+  h += String("<option value='MST7MDT,M3.2.0/2,M11.1.0/2'") + ((tzNow == "MST7MDT,M3.2.0/2,M11.1.0/2") ? " selected" : "") + ">US — Mountain (MT)</option>";
+  h += String("<option value='PST8PDT,M3.2.0/2,M11.1.0/2'") + ((tzNow == "PST8PDT,M3.2.0/2,M11.1.0/2") ? " selected" : "") + ">US — Pacific (PT)</option>";
+  h += String("<option value='AKST9AKDT,M3.2.0/2,M11.1.0/2'") + ((tzNow == "AKST9AKDT,M3.2.0/2,M11.1.0/2") ? " selected" : "") + ">US — Alaska (AKT)</option>";
+  h += String("<option value='HST10'") + ((tzNow == "HST10") ? " selected" : "") + ">US — Hawaii (HST)</option>";
+  h += String("<option value='MST7'") + ((tzNow == "MST7") ? " selected" : "") + ">US — Arizona (MST, no DST)</option>";
+  h += String("<option value='UTC0'") + ((tzNow == "UTC0") ? " selected" : "") + ">UTC</option>";
+  h += String("<option value='CUSTOM'") + (!tzIsKnown ? " selected" : "") + ">Custom (POSIX TZ string)</option>";
+  h += "</select>";
+  h += "<div id='tzCustomWrap' style='margin-top:8px;display:none;'>";
+  h += "<label>Custom TZ string</label>";
+  h += "<input class='field long' name='tzcustom' id='tzcustom' type='text' value='" + htmlEscape(tzNow) + "' placeholder='EST5EDT,M3.2.0/2,M11.1.0/2' />";
+  h += "<div class='hint'>Use POSIX TZ format. Example Eastern: <code>EST5EDT,M3.2.0/2,M11.1.0/2</code></div>";
+  h += "</div>";
 
   h += "<div style='margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;'>";
   h += "<div class='actions'>";
@@ -204,6 +234,12 @@ static String configPageHtml(bool apMode, const String& banner) {
   h += "function upd(){var m=document.getElementById('ipmode').value;var s=document.getElementById('staticFields');if(!s)return; s.style.display=(m==='static')?'block':'none';}";
   h += "document.getElementById('ipmode').addEventListener('change',upd);upd();";
   h += "</script>";
+  // small JS: show/hide custom TZ field
+  h += "<script>";
+  h += "function tzupd(){var s=document.getElementById(\"tzsel\");var w=document.getElementById(\"tzCustomWrap\");if(!s||!w) return; w.style.display=(s.value===\"CUSTOM\")?\"block\":\"none\";}";
+  h += "var s=document.getElementById(\"tzsel\"); if(s) s.addEventListener(\"change\",tzupd); tzupd();";
+  h += "</script>";
+
   h += "<script>";
   h += "function pushFx(el){if(!el) return; el.classList.add(\"pushed\"); setTimeout(()=>{el.classList.remove(\"pushed\");}, 180);}";
   h += "document.querySelectorAll(\".btn\").forEach(b=>{ b.addEventListener(\"click\",()=>pushFx(b)); });";
@@ -211,6 +247,16 @@ static String configPageHtml(bool apMode, const String& banner) {
 
   h += "</div></div></body></html>";
   return h;
+}
+
+static bool isTzSane(const String& tz) {
+  if (tz.length() == 0 || tz.length() > 80) return false;
+  for (size_t i = 0; i < tz.length(); i++) {
+    char c = tz[i];
+    if ((uint8_t)c < 0x20) return false;
+    if (c == '"' || c == '\'' || c == '<' || c == '>') return false;
+  }
+  return true;
 }
 
 static bool applyConfigFromRequest(RuntimeConfig& outCfg) {
@@ -261,7 +307,19 @@ static bool applyConfigFromRequest(RuntimeConfig& outCfg) {
 
   String host = server.arg("host");
   host = normalizeHost(host);
-  if (host.length()) c.hostName = host;
+  if (host.length()) c.hostName = host;  // Time zone (POSIX TZ string)
+  String tzsel = server.arg("tzsel"); tzsel.trim();
+  String tzcustom = server.arg("tzcustom"); tzcustom.trim();
+  if (tzsel.length()) {
+    String tz = tzsel;
+    if (tzsel == "CUSTOM") tz = tzcustom;
+    tz.trim();
+    if (tz.length() == 0) tz = DEFAULT_TZ;
+    if (!isTzSane(tz)) return false;
+    c.tz = tz;
+  }
+
+
 
   outCfg = c;
   return true;

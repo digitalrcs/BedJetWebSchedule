@@ -5,7 +5,7 @@ const char INDEX_HTML[] PROGMEM = R"BEDJET_HTML(
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>BedJet Schedule</title>
+<title>BedJet Schedule v1.0 by Dan Roberts</title>
 <style>
   :root{
     --bg1:#071a33; --bg2:#053a5a; --card:rgba(255,255,255,.08);
@@ -227,7 +227,7 @@ const char INDEX_HTML[] PROGMEM = R"BEDJET_HTML(
 <div class="wrap">
   <div class="top">
     <div>
-      <div class="title">BEDJET — Schedule</div>
+      <div class="title">BEDJET — Schedule v1.0 by Dan Roberts</div>
       <div class="sub">Connected Device: <span id="dev">-</span> • <span id="mac">-</span></div>
       <div class="sub">
         Time: <span id="timeNow">-</span>
@@ -306,6 +306,7 @@ const char INDEX_HTML[] PROGMEM = R"BEDJET_HTML(
     <div class="inline" style="justify-content:space-between;">
       <div style="font-weight:950;">Schedule</div>
       <div class="inline">
+        <button id="pauseBtn" class="btn" onclick="togglePause(this)">PAUSE</button>
         <button class="btn" onclick="exportSchedule(this)">EXPORT</button>
         <button class="btn" onclick="openImport(this)">IMPORT</button>
         <button class="btn primary" onclick="openAdd()">ADD</button>
@@ -594,8 +595,16 @@ function render(){
   document.getElementById("tz").textContent = tz;
 
   const act = state.active_schedule_id || 0;
-  document.getElementById("schedState").textContent = act ? ("Running schedule ID: "+act) : "Not in a scheduled block";
+  document.getElementById("schedState").textContent = (state.sched_paused ? "[PAUSED] " : "") + (act ? ("Running schedule ID: "+act) : "Not in a scheduled block");
   document.getElementById("status").textContent = state.status_summary || "-";
+
+  const pb = document.getElementById("pauseBtn");
+  if(pb){
+    const paused = !!state.sched_paused;
+    pb.textContent = paused ? "RESUME" : "PAUSE";
+    pb.classList.toggle("danger", paused);
+  }
+
 
   renderScheduleTable();
   renderScheduleCards();
@@ -715,6 +724,28 @@ function setImpMsg(msg, isError){
   if(!m) return;
   m.textContent = msg || "";
   m.style.color = isError ? "var(--red)" : "var(--muted)";
+}
+
+
+async function togglePause(el){
+  pushBtn(el);
+  if(el) el.disabled=true;
+  try{
+    const r = await fetch("/api/schedule/pause", {method:"POST"});
+    if(!r.ok){
+      alert("Pause failed: " + (await r.text()));
+      return;
+    }
+    // Response: {"ok":true,"paused":true|false}
+    try{
+      const j = await r.json();
+      if(state) state.sched_paused = !!j.paused;
+    }catch(e){}
+    await refresh();
+  } finally {
+    if(el) el.disabled=false;
+    popBtn(el);
+  }
 }
 
 async function exportSchedule(el){

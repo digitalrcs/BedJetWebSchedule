@@ -213,6 +213,27 @@ void handleScheduleImport() {
   sendJson(200, String("{\"ok\":true,\"count\":") + String(count) + "}");
 }
 
+void handleSchedulePause() {
+  // POST /api/schedule/pause
+  // Optional form/query arg: paused=1|0|true|false. If omitted, toggles.
+  bool next = !g_cfg.schedulesPaused;
+  if (server.hasArg("paused")) {
+    String v = server.arg("paused");
+    v.trim(); v.toLowerCase();
+    if (v == "1" || v == "true" || v == "yes" || v == "on") next = true;
+    else if (v == "0" || v == "false" || v == "no" || v == "off") next = false;
+    else { server.send(400, "text/plain", "Invalid paused"); return; }
+  }
+
+  g_cfg.schedulesPaused = next;
+
+  // Persist so a reboot doesn't unexpectedly resume schedules.
+  saveConfigToNvs(g_cfg, true);
+
+  sendJson(200, String("{\"ok\":true,\"paused\":") + (g_cfg.schedulesPaused ? "true" : "false") + "}");
+}
+
+
 
 
 static String statusSummary() {
@@ -291,6 +312,7 @@ static String buildStateJson() {
   j += "\"ip\":\"" + jsonEscape(WiFi.localIP().toString()) + "\",";
   j += "\"time\":\"" + jsonEscape(timeStr) + "\",";
   j += "\"time_valid\":" + String(timeValid() ? "true" : "false") + ",";
+  j += "\"tz\":\"" + jsonEscape(g_cfg.tz) + "\",";
   j += "\"tz_offset_sec\":" + String(tzOff) + ",";
   j += "\"dst\":" + String(isDst) + ",";
   j += "\"device_name\":\"" + jsonEscape(g_cfg.deviceName) + "\",";
@@ -298,6 +320,7 @@ static String buildStateJson() {
   j += "\"ble_connected\":" + String(bleIsConnected() ? "true" : "false") + ",";
   j += "\"status_summary\":\"" + jsonEscape(statusSummary()) + "\",";
   j += "\"active_schedule_id\":" + String(activeScheduleId()) + ",";
+  j += "\"sched_paused\":" + String(g_cfg.schedulesPaused ? "true" : "false") + ",";
   j += "\"schedule\":[";
   for (int i = 0; i < g_schedCount; i++) {
     if (i) j += ",";

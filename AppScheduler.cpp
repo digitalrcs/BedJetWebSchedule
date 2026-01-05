@@ -48,6 +48,9 @@ static bool applySchedule(const ScheduleItem& it) {
 void schedulerTick() {
   if (!timeValid()) return;
 
+  // Pause = do not execute schedules; BedJet remains in its current state until resumed.
+  if (g_cfg.schedulesPaused) return;
+
   uint16_t nowMin = minutesSinceMidnight();
   int desired = pickActiveIndex(nowMin);
 

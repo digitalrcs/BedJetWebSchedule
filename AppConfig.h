@@ -16,6 +16,8 @@ struct RuntimeConfig {
   String   bedjetMac;     // "AA:BB:CC:DD:EE:FF"
   String   deviceName;    // used in UI/state JSON
   String   hostName;      // hostname / mDNS name (e.g., BEDJETWEB)
+  String   tz;           // POSIX TZ string (e.g., EST5EDT,M3.2.0/2,M11.1.0/2)
+  bool     schedulesPaused;  // pause automation (do not execute schedules)
 };
 
 extern RuntimeConfig g_cfg;
@@ -43,3 +45,5 @@ extern IPAddress DEFAULT_DNS2;
 extern const char* DEFAULT_BEDJET_MAC;
 extern const char* DEFAULT_DEVICE_NAME;
 extern const char* DEFAULT_HOSTNAME;
+
+extern const char* DEFAULT_TZ;

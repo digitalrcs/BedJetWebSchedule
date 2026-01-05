@@ -18,6 +18,7 @@ IPAddress DEFAULT_DNS2    (8, 8, 8, 8);
 const char* DEFAULT_BEDJET_MAC  = "AA:BB:CC:DD:EE:FF";
 const char* DEFAULT_DEVICE_NAME = "BedJetDeviceName";
 const char* DEFAULT_HOSTNAME   = "BedJetDeviceName";
+const char* DEFAULT_TZ         = "EST5EDT,M3.2.0/2,M11.1.0/2";
 // ------------------------------------------------------------------
 
 RuntimeConfig g_cfg;
@@ -117,6 +118,8 @@ static void setDefaults() {
   g_cfg.bedjetMac = DEFAULT_BEDJET_MAC;
   g_cfg.deviceName = DEFAULT_DEVICE_NAME;
   g_cfg.hostName   = DEFAULT_HOSTNAME;
+  g_cfg.tz        = DEFAULT_TZ;
+  g_cfg.schedulesPaused = false;
 }
 bool loadConfig() {
   setDefaults();
@@ -148,10 +151,13 @@ bool loadConfig() {
   g_cfg.deviceName = prefsCfg.getString("name", g_cfg.deviceName);
   g_cfg.hostName  = prefsCfg.getString("host", g_cfg.hostName);
 
+  g_cfg.tz        = prefsCfg.getString("tz", g_cfg.tz);
+  g_cfg.schedulesPaused = prefsCfg.getBool("schedPaused", g_cfg.schedulesPaused);
   prefsCfg.end();
 
   g_cfg.bedjetMac = normalizeMac(g_cfg.bedjetMac);
   g_cfg.hostName = normalizeHost(g_cfg.hostName);
+  // TZ and schedulesPaused already loaded above; nothing to read after prefs end.
   return true;
 }
 void saveConfigToNvs(const RuntimeConfig& cfg, bool keepPasswordIfBlank) {
@@ -174,5 +180,7 @@ void saveConfigToNvs(const RuntimeConfig& cfg, bool keepPasswordIfBlank) {
   prefsCfg.putString("name", cfg.deviceName);
   prefsCfg.putString("host", cfg.hostName);
 
+  prefsCfg.putString("tz",   cfg.tz);
+  prefsCfg.putBool("schedPaused", cfg.schedulesPaused);
   prefsCfg.end();
 }

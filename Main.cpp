@@ -33,11 +33,15 @@ static bool setupWiFi() {
 }
 
 static void setupTimeNtp() {
-  // US Eastern timezone (handles DST)
-  setenv("TZ", "EST5EDT,M3.2.0/2,M11.1.0/2", 1);
-  tzset();
+  // Time zone + NTP. Note: Arduino-ESP32's configTime(...) may reset TZ to UTC,
+  // so set TZ *after* calling configTime to ensure localtime() reflects the selected zone.
+  String tz = g_cfg.tz; tz.trim();
+  if (tz.length() == 0) tz = DEFAULT_TZ;
 
   configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+
+  setenv("TZ", tz.c_str(), 1);
+  tzset();
 }
 
 void setupBle() {
@@ -60,6 +64,7 @@ static void setupWeb() {
   server.on("/api/schedule/deleteOne", HTTP_POST, handleScheduleDeleteOne);
   server.on("/api/schedule/export", HTTP_GET, handleScheduleExport);
   server.on("/api/schedule/import", HTTP_POST, handleScheduleImport);
+  server.on("/api/schedule/pause", HTTP_POST, handleSchedulePause);
 
   setupWebNormalConfigPage();
   server.begin();

@@ -12,6 +12,8 @@ void handleRoot();
 void handleState();
 void handleScheduleExport();
 void handleScheduleImport();
+void handleSchedulePause(); // pause/resume all schedules
+
 void handleBleConnect();
 void handleBleDisconnect();
 void handleCmdButton();
