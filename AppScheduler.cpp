@@ -30,7 +30,8 @@ static bool applySchedule(const ScheduleItem& it) {
     return bedjetButton(BTN_OFF);
   }
 
-  if (!bedjetButton(it.modeButton)) return false;
+  // Use "smart" mode switching to improve reliability when crossing COOL <-> HEAT-family modes.
+  if (!bedjetSetModeSmart(it.modeButton)) return false;
   delay(80);
 
   bedjetSetFan(it.fanStep);

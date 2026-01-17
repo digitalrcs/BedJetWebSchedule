@@ -1,0 +1,10 @@
+# ESP32-WROOM 4MB (0x400000) - NO OTA
+# App ~3MB, FS ~1MB (SPIFFS/LittleFS), plus NVS and optional coredump.
+#
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xE000,   0x2000,
+app0,     app,  factory, 0x10000,  0x300000,
+fs,       data, spiffs,  0x310000, 0x0E0000,
+coredump, data, coredump,0x3F0000, 0x10000,
+

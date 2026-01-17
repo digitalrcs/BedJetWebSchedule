@@ -27,6 +27,9 @@ void bleLoop();
 
 // Device commands
 bool bedjetButton(uint8_t btn);
+// Mode transitions can be flaky when crossing COOL <-> HEAT-family on some BedJet firmware.
+// This helper uses the latest status snapshot to decide if an OFF->target sequence is safer.
+bool bedjetSetModeSmart(uint8_t targetBtn);
 bool bedjetSetFan(uint8_t fanStep);   // 0..19
 bool bedjetSetTemp(float tempF);      // Fahrenheit (alias)
 bool bedjetSetTempF(float tempF);

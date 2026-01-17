@@ -84,6 +84,78 @@ bool bedjetButton(uint8_t btn) {
   uint8_t p[2] = { CMD_BUTTON, btn };
   return bleWrite(p, sizeof(p));
 }
+
+// Some BedJet firmware revisions can behave inconsistently when switching directly between
+// COOL and HEAT-family modes (HEAT/TURBO/EXT-HEAT). To make schedules reliable, we optionally
+// send OFF first when crossing mode families, based on the freshest status snapshot.
+static uint8_t modeIdxToButton(uint8_t modeIdx) {
+  switch (modeIdx) {
+    case 0: return BTN_OFF;
+    case 1: return BTN_HEAT;
+    case 2: return BTN_TURBO;
+    case 3: return BTN_EXTHT;
+    case 4: return BTN_COOL;
+    case 5: return BTN_DRY;
+    default: return BTN_OFF;
+  }
+}
+
+static bool isHeatFamily(uint8_t btn) {
+  return (btn == BTN_HEAT || btn == BTN_TURBO || btn == BTN_EXTHT);
+}
+static bool isCoolFamily(uint8_t btn) {
+  return (btn == BTN_COOL);
+}
+static bool isDry(uint8_t btn) {
+  return (btn == BTN_DRY);
+}
+
+static bool tryGetCurrentButton(uint8_t& outBtn) {
+  uint8_t snap[96];
+  uint16_t slen = 0;
+  uint32_t ageMs = 0;
+  bool valid = false;
+
+  if (!bleGetStatusSnapshot(snap, slen, ageMs, valid)) return false;
+  if (!valid) return false;
+  // mode index is observed at [9] in the 20-byte status frame (see bleStatusSummary())
+  if (slen <= 9) return false;
+  // Avoid acting on stale status; during reconnects we may have an old snapshot.
+  if (ageMs > 5000) return false;
+
+  outBtn = modeIdxToButton(snap[9]);
+  return true;
+}
+
+bool bedjetSetModeSmart(uint8_t targetBtn) {
+  if (targetBtn == BTN_OFF) return bedjetButton(BTN_OFF);
+
+  bool doOffFirst = false;
+  uint8_t curBtn = BTN_OFF;
+  if (tryGetCurrentButton(curBtn)) {
+    if (curBtn != targetBtn) {
+      if ((isCoolFamily(curBtn) && isHeatFamily(targetBtn)) ||
+          (isHeatFamily(curBtn) && isCoolFamily(targetBtn)) ||
+          isDry(curBtn) || isDry(targetBtn)) {
+        doOffFirst = true;
+      }
+    }
+  } else {
+    // If we don't have a fresh status snapshot, err on the side of reliability.
+    // OFF->target is slightly slower but avoids mode-transition edge cases.
+    if (isHeatFamily(targetBtn) || isCoolFamily(targetBtn) || isDry(targetBtn)) {
+      doOffFirst = true;
+    }
+  }
+
+  if (doOffFirst) {
+    if (!bedjetButton(BTN_OFF)) return false;
+    delay(250);
+  }
+
+  return bedjetButton(targetBtn);
+}
+
 bool bedjetSetFan(uint8_t step) {
   step = (uint8_t)constrain((int)step, (int)FAN_MIN, (int)FAN_MAX);
   uint8_t p[2] = { CMD_SET_FAN, step };
