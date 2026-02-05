@@ -6,6 +6,13 @@ ESP32 firmware that controls a **BedJet** over **Bluetooth Low Energy (BLE)** an
 
 ---
 
+## Recent Changes
+
+- Added **Run Now** button to each schedule item (left side of the row/card) to execute the item immediately.
+- Run Now uses the same **connection/progress modal** as Quick Controls for consistent feedback.
+
+---
+
 ## Features
 
 - **Web UI** (desktop + phone)
@@ -82,6 +89,18 @@ Open the main UI and:
 - Use **Quick Controls** (each action can auto-connect with retries)
 - Configure schedules
 - Import/Export schedules as JSON
+
+---
+
+## Web API (selected endpoints)
+
+These are the most commonly used HTTP endpoints backing the Web UI.
+
+- `POST /api/quick` (or equivalent) — quick controls (mode/temp/fan/runtime)
+- `POST /api/schedule/runOne` — **Run Now** for a single schedule item (ignores enabled/disabled)
+- `GET /api/state` — current device + schedule state for UI refresh
+
+> Endpoint names can change as the UI evolves; treat this list as a high-level reference.
 
 ---
 
