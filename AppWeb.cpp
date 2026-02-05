@@ -185,6 +185,45 @@ void handleScheduleDeleteOne() {
   sendJson(200, "{\"ok\":true}");
 }
 
+
+static uint16_t scheduleDurationMinutes(uint16_t startMin, uint16_t stopMin) {
+  int d = (int)stopMin - (int)startMin;
+  if (d <= 0) d += 1440;
+  return (uint16_t)d;
+}
+
+// POST /api/schedule/runOne (id=...)
+// Runs the schedule item immediately for its *configured full duration* (start->stop),
+// regardless of enabled/disabled status or global schedule pause.
+void handleScheduleRunOne() {
+  if (!server.hasArg("id")) { server.send(400, "text/plain", "Missing id"); return; }
+  uint16_t id = (uint16_t)server.arg("id").toInt();
+
+  int idx = -1;
+  for (int i = 0; i < g_schedCount; i++) {
+    if (g_sched[i].id == id) { idx = i; break; }
+  }
+  if (idx < 0) { server.send(404, "text/plain", "Schedule item not found"); return; }
+
+  const ScheduleItem& it = g_sched[idx];
+  uint16_t runMins = scheduleDurationMinutes(it.startMin, it.stopMin);
+
+  bool ok = false;
+  if (bleEnsureConnected()) {
+    bedjetSetClockNow();
+    delay(40);
+
+    if (it.modeButton == BTN_OFF) {
+      ok = bedjetButton(BTN_OFF);
+    } else {
+      ok = bedjetSetModeSmart(it.modeButton);
+      if (ok) { delay(80); bedjetSetFan(it.fanStep); delay(60); bedjetSetTempF(it.tempF); delay(60); bedjetSetRuntimeMinutes(runMins); }
+    }
+  }
+
+  sendJson(ok ? 200 : 500, String("{\"ok\":") + (ok ? "true" : "false") + String(",\"runMins\":") + String(runMins) + String(",\"id\":") + String(id) + String("}"));
+}
+
 void handleScheduleExport() {
   sendJson(200, buildScheduleExportJson());
 }

@@ -181,7 +181,8 @@ const char INDEX_HTML[] PROGMEM = R"BEDJET_HTML(
   }
   .scK{ color:var(--muted); font-size:12px; margin-bottom:2px; }
   .scV{ font-weight:850; }
-  .scActions{ display:flex; gap:10px; justify-content:flex-end; margin-top:10px; }
+  .scActions{ display:flex; gap:10px; justify-content:space-between; align-items:center; margin-top:10px; }
+  .scActionsRight{ display:flex; gap:10px; }
 
   /* Mobile tweaks */
   @media (max-width: 720px){
@@ -318,6 +319,7 @@ const char INDEX_HTML[] PROGMEM = R"BEDJET_HTML(
       <table>
         <thead>
           <tr>
+            <th style="width:70px;">Run</th>
             <th style="width:60px;">#</th>
             <th>Mode</th>
             <th>Temp</th>
@@ -523,6 +525,9 @@ function renderScheduleTable(){
   const rowsEl=document.getElementById("rows");
   rowsEl.innerHTML = (state.schedule||[]).map((s,i)=>`
     <tr>
+      <td>
+        <button class="iconbtn" title="Run now" onclick="runOne(${s.id}, this)">▶</button>
+      </td>
       <td>${i+1}</td>
       <td>${s.mode}</td>
       <td>${s.tempF}°F</td>
@@ -574,8 +579,11 @@ function renderScheduleCards(){
       </div>
 
       <div class="scActions">
-        <button class="btn" onclick="openEdit(${s.id})">Edit</button>
-        <button class="btn" style="border-color:rgba(255,59,77,.32); background:rgba(255,59,77,.14);" onclick="deleteOne(${s.id})">Delete</button>
+        <button class="btn" title="Run now" onclick="runOne(${s.id}, this)">Run ▶</button>
+        <div class="scActionsRight">
+          <button class="btn" onclick="openEdit(${s.id})">Edit</button>
+          <button class="btn" style="border-color:rgba(255,59,77,.32); background:rgba(255,59,77,.14);" onclick="deleteOne(${s.id})">Delete</button>
+        </div>
       </div>
     </div>`).join("");
 }
@@ -935,6 +943,63 @@ async function saveSchedule(){
   closeDlg();
   await refresh();
 }
+
+
+function schedDurationMinutes(startMin, stopMin){
+  // Handles midnight wrap. start/stop are minutes since midnight.
+  if(typeof startMin !== "number" || typeof stopMin !== "number") return 0;
+  if(startMin === stopMin) return 0;
+  if(stopMin > startMin) return stopMin - startMin;
+  return (1440 - startMin) + stopMin;
+}
+
+async function runOne(id, el){
+  pushBtn(el);
+  if(el) el.disabled = true;
+
+  // Look up the schedule item so we can show the same style modal as Quick Controls.
+  const s = (state && state.schedule) ? (state.schedule.find(x=>Number(x.id)===Number(id)) || null) : null;
+  const mins = s ? schedDurationMinutes(Number(s.startMin), Number(s.stopMin)) : 0;
+
+  const lines = [];
+  lines.push("BLE Connection");
+  lines.push("Connecting / ensuring link...");
+  lines.push("");
+  if(s){
+    lines.push("Schedule: " + String(id));
+    lines.push("Mode: " + String(s.mode));
+    lines.push("Temp: " + String(s.tempF) + "°F");
+    lines.push("Fan: " + String(s.fan) + " (0–19)");
+    lines.push("Run: " + String(mins) + " min");
+  } else {
+    lines.push("Schedule: " + String(id));
+  }
+
+  // Use real newlines so the modal formats like Quick Controls.
+  setConnModal(lines.join("\n"), true, false);
+  // Tiny delay so the modal reliably renders before BLE work starts.
+  await new Promise(res=>setTimeout(res, 80));
+
+  try{
+    const body = new URLSearchParams({id:String(id)});
+    const r = await fetch("/api/schedule/runOne",{method:"POST",body});
+    if(!r.ok){
+      setConnModal("Schedule run failed", false, true);
+      closeConnModal(1200);
+      return;
+    }
+    setConnModal("Schedule run started", false, false);
+    await refresh();
+    closeConnModal(450);
+  } catch(e){
+    setConnModal("Schedule run failed", false, true);
+    try{ await refresh(); } catch(_){}
+    closeConnModal(1200);
+  } finally {
+    if(el) el.disabled = false;
+  }
+}
+
 
 async function deleteOne(id){
   if(!confirm("Delete schedule item "+id+"?")) return;

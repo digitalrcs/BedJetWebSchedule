@@ -13,6 +13,7 @@ void handleState();
 void handleScheduleExport();
 void handleScheduleImport();
 void handleSchedulePause(); // pause/resume all schedules
+void handleScheduleRunOne(); // run a schedule item immediately for its configured duration
 
 void handleBleConnect();
 void handleBleDisconnect();

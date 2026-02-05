@@ -62,6 +62,7 @@ static void setupWeb() {
   server.on("/api/schedule/add", HTTP_POST, handleScheduleAdd);
   server.on("/api/schedule/update", HTTP_POST, handleScheduleUpdate);
   server.on("/api/schedule/deleteOne", HTTP_POST, handleScheduleDeleteOne);
+  server.on("/api/schedule/runOne", HTTP_POST, handleScheduleRunOne);
   server.on("/api/schedule/export", HTTP_GET, handleScheduleExport);
   server.on("/api/schedule/import", HTTP_POST, handleScheduleImport);
   server.on("/api/schedule/pause", HTTP_POST, handleSchedulePause);
