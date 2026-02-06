@@ -38,7 +38,7 @@ const char INDEX_HTML[] PROGMEM = R"BEDJET_HTML(
     border:1px solid var(--border);
     background:rgba(255,255,255,.10);
     color:var(--text);
-    font-weight:800;
+    font-weight:400;
     cursor:pointer;
     touch-action:manipulation;
   }
@@ -74,7 +74,7 @@ const char INDEX_HTML[] PROGMEM = R"BEDJET_HTML(
   .pill.ok{ color:var(--green); }
   .pill.bad{ color:var(--red); }
 
-  .inline{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .inline{ display:flex; gap:5px; align-items:center; flex-wrap:wrap; }
 
   /* Inputs / Selects (fix dropdown background/text) */
   input, select{
@@ -173,15 +173,21 @@ const char INDEX_HTML[] PROGMEM = R"BEDJET_HTML(
   }
   .badge.on{ color: var(--green); }
   .scardGrid{
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap:8px 12px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
     margin-top:10px;
     font-size:14px;
   }
-  .scK{ color:var(--muted); font-size:12px; margin-bottom:2px; }
+  .scRow{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .scItem{ flex:1 1 140px; min-width:140px; display:flex; align-items:baseline; gap:8px; }
+  .scK{ color:var(--muted); font-size:12px; margin:0; }
   .scV{ font-weight:850; }
-  .scActions{ display:flex; gap:10px; justify-content:space-between; align-items:center; margin-top:10px; }
+.scActions{ display:flex; gap:10px; justify-content:space-between; align-items:center; margin-top:10px; }
   .scActionsRight{ display:flex; gap:10px; }
 
   /* Mobile tweaks */
@@ -267,10 +273,10 @@ const char INDEX_HTML[] PROGMEM = R"BEDJET_HTML(
 
       <div class="formrow twocol" style="margin-top:10px;">
         <div class="half">
-          <label>Quick Fan Step (0–19)</label>
+          <label>Quick Fan Step (0-19)</label>
           <div class="inline">
             <button class="btn" onclick="spin('qFan',-1)">-</button>
-            <input id="qFan" class="spin" value="10" inputmode="numeric"/>
+            <input id="qFan" class="spin" value="9" inputmode="numeric"/>
             <button class="btn" onclick="spin('qFan',+1)">+</button>
           </div>
           <div class="mini">0=5% … 19=100%</div>
@@ -280,7 +286,7 @@ const char INDEX_HTML[] PROGMEM = R"BEDJET_HTML(
           <label>Quick Temp (°F)</label>
           <div class="inline">
             <button class="btn" onclick="spin('qTemp',-1)">-</button>
-            <input id="qTemp" class="spin" value="90" inputmode="numeric"/>
+            <input id="qTemp" class="spin" value="75" inputmode="numeric"/>
             <button class="btn" onclick="spin('qTemp',+1)">+</button>
           </div>
         </div>
@@ -409,10 +415,10 @@ const char INDEX_HTML[] PROGMEM = R"BEDJET_HTML(
 
   <div class="formrow twocol">
     <div class="half">
-      <label>Fan Step (0–19)</label>
+      <label>Fan Step (0-19)</label>
       <div class="inline">
         <button class="btn" onclick="spin('fanInp',-1)">-</button>
-        <input id="fanInp" class="spin" value="10" inputmode="numeric"/>
+        <input id="fanInp" class="spin" value="9" inputmode="numeric"/>
         <button class="btn" onclick="spin('fanInp',+1)">+</button>
       </div>
       <div class="mini">0=5% … 19=100%</div>
@@ -422,7 +428,7 @@ const char INDEX_HTML[] PROGMEM = R"BEDJET_HTML(
       <label>Temp (°F)</label>
       <div class="inline">
         <button class="btn" onclick="spin('tempInp',-1)">-</button>
-        <input id="tempInp" class="spin" value="90" inputmode="numeric"/>
+        <input id="tempInp" class="spin" value="75" inputmode="numeric"/>
         <button class="btn" onclick="spin('tempInp',+1)">+</button>
       </div>
     </div>
@@ -560,22 +566,14 @@ function renderScheduleCards(){
       </div>
 
       <div class="scardGrid">
-        <div>
-          <div class="scK">Mode</div>
-          <div class="scV">${s.mode}</div>
-        </div>
-        <div>
-          <div class="scK">Temp / Fan</div>
-          <div class="scV">${s.tempF}°F • ${s.fan}</div>
-        </div>
-        <div>
-          <div class="scK">Start</div>
-          <div class="scV">${s.start}</div>
-        </div>
-        <div>
-          <div class="scK">Stop</div>
-          <div class="scV">${s.stop}</div>
-        </div>
+        <div class="scRow">
+        <div class="scItem"><span class="scK">Mode</span><span class="scV">${s.mode}</span></div>
+        <div class="scItem"><span class="scK">Temp / Fan</span><span class="scV">${s.tempF}°F • ${s.fan}</span></div>
+      </div>
+      <div class="scRow">
+        <div class="scItem"><span class="scK">Start</span><span class="scV">${s.start}</span></div>
+        <div class="scItem"><span class="scK">Stop</span><span class="scV">${s.stop}</span></div>
+      </div>
       </div>
 
       <div class="scActions">

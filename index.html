@@ -166,15 +166,21 @@
   }
   .badge.on{ color: var(--green); }
   .scardGrid{
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap:8px 12px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
     margin-top:10px;
     font-size:14px;
   }
-  .scK{ color:var(--muted); font-size:12px; margin-bottom:2px; }
+  .scRow{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .scItem{ flex:1 1 140px; min-width:140px; display:flex; align-items:baseline; gap:8px; }
+  .scK{ color:var(--muted); font-size:12px; margin:0; }
   .scV{ font-weight:850; }
-  .scActions{ display:flex; gap:10px; justify-content:flex-end; margin-top:10px; }
+.scActions{ display:flex; gap:10px; justify-content:flex-end; margin-top:10px; }
 
   /* Mobile tweaks */
   @media (max-width: 720px){
@@ -547,22 +553,14 @@ function renderScheduleCards(){
       </div>
 
       <div class="scardGrid">
-        <div>
-          <div class="scK">Mode</div>
-          <div class="scV">${s.mode}</div>
-        </div>
-        <div>
-          <div class="scK">Temp / Fan</div>
-          <div class="scV">${s.tempF}°F • ${s.fan}</div>
-        </div>
-        <div>
-          <div class="scK">Start</div>
-          <div class="scV">${s.start}</div>
-        </div>
-        <div>
-          <div class="scK">Stop</div>
-          <div class="scV">${s.stop}</div>
-        </div>
+        <div class="scRow">
+        <div class="scItem"><span class="scK">Mode</span><span class="scV">${s.mode}</span></div>
+        <div class="scItem"><span class="scK">Temp / Fan</span><span class="scV">${s.tempF}°F • ${s.fan}</span></div>
+      </div>
+      <div class="scRow">
+        <div class="scItem"><span class="scK">Start</span><span class="scV">${s.start}</span></div>
+        <div class="scItem"><span class="scK">Stop</span><span class="scV">${s.stop}</span></div>
+      </div>
       </div>
 
       <div class="scActions">
